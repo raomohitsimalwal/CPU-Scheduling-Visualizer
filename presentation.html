@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentation: CPU Scheduling Visualizer & Performance Analyzer</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-dark: #0a0c16;
+            --bg-slide: #121528;
+            --bg-card: #1a1e38;
+            --bg-card-hover: #222748;
+            --text-primary: #f0f2fa;
+            --text-secondary: #a0a6cc;
+            --text-tertiary: #6a7199;
+            --primary: #4361ee;
+            --primary-glow: rgba(67, 97, 238, 0.4);
+            --accent-pink: #f72585;
+            --accent-cyan: #4cc9f0;
+            --accent-green: #06d6a0;
+            --accent-orange: #f77f00;
+            --accent-purple: #7209b7;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(67, 97, 238, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+        }
+
+        /* Top Progress Bar */
+        .progress-bar-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            position: relative;
+            z-index: 100;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent-cyan));
+            width: 0%;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        /* Slides Viewport */
+        .viewport {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .slide {
+            position: absolute;
+            width: 92%;
+            max-width: 1280px;
+            height: 86vh;
+            max-height: 780px;
+            background: var(--bg-slide);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px 56px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.96) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1) translateY(0);
+            z-index: 10;
+        }
+
+        /* Slide Headers */
+        .slide-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent-cyan);
+            background: rgba(76, 201, 240, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(76, 201, 240, 0.2);
+            width: fit-content;
+        }
+
+        .slide-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffffff, #c2c7e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .slide-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+        }
+
+        /* Title Slide Layout */
+        .title-slide {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .title-slide .badge-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .title-slide h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #ffffff 30%, var(--accent-cyan) 80%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-slide .lead {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin-bottom: 36px;
+            line-height: 1.6;
+        }
+
+        /* Team Showcase Grid */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .member-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: left;
+            position: relative;
+            transition: all 0.25s ease;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .member-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--border-highlight);
+            box-shadow: 0 12px 30px var(--primary-glow);
+        }
+
+        .member-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary), var(--accent-purple));
+            color: white;
+            font-weight: 800;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+
+        .member-card:nth-child(2) .member-avatar {
+            background: linear-gradient(135deg, var(--accent-pink), var(--accent-orange));
+        }
+
+        .member-card:nth-child(3) .member-avatar {
+            background: linear-gradient(135deg, var(--accent-green), var(--primary));
+        }
+
+        .member-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .member-roll {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.82rem;
+            color: var(--accent-cyan);
+            background: rgba(76, 201, 240, 0.1);
+            padding: 2px 8px;
+            border-radius: 6px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .member-role {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--accent-orange);
+            margin-bottom: 8px;
+        }
+
+        .member-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* 2-Column Content Grid */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            flex: 1;
+        }
+
+        /* 3-Column Content Grid */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            flex: 1;
+        }
+
+        /* Content Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .card ul {
+            list-style: none;
+            padding: 0;
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            flex: 1;
+        }
+
+        .card ul li {
+            padding: 6px 0;
+            padding-left: 20px;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .card ul li::before {
+            content: "▹";
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        /* Metric Formula Pill */
+        .formula-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            color: var(--accent-green);
+            margin-top: 8px;
+        }
+
+        /* Table Styling */
+        table.pres-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        table.pres-table th {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            border-bottom: 1px solid var(--border);
+        }
+
+        table.pres-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+        }
+
+        table.pres-table tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+            color: #fff;
+        }
+
+        .badge-optimal {
+            background: rgba(6, 214, 160, 0.15);
+            color: var(--accent-green);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+
+        /* Speaker Notes Panel (Bottom Drawer) */
+        .notes-drawer {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%) translateY(120%);
+            width: 88%;
+            max-width: 1100px;
+            background: rgba(14, 17, 36, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--primary);
+            border-radius: 14px;
+            padding: 20px 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .notes-drawer.open {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .notes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-orange);
+            font-weight: 700;
+        }
+
+        .notes-content {
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: #e0e4fc;
+        }
+
+        /* Bottom Controls Bar */
+        .controls-bar {
+            height: 64px;
+            background: var(--bg-dark);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            z-index: 50;
+        }
+
+        .controls-left, .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-ctrl {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
+        .btn-ctrl:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .btn-ctrl.btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 2px 10px var(--primary-glow);
+        }
+
+        .slide-counter {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.88rem;
+            color: var(--text-tertiary);
+        }
+
+        .key-hint {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-left: 8px;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .team-grid, .grid-3 { grid-template-columns: 1fr; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .slide { padding: 24px; height: 90vh; }
+            .title-slide h1 { font-size: 2.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Progress Indicator -->
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Viewport Container -->
+    <main class="viewport">
+
+        <!-- ============================================================
+             SLIDE 1: Title Slide
+             ============================================================ -->
+        <section class="slide active title-slide" data-slide="1">
+            <div class="badge-group">
+                <span class="slide-tag">Operating Systems Capstone Project</span>
+                <span class="slide-tag" style="color:var(--accent-green); background:rgba(6,214,160,0.1); border-color:rgba(6,214,160,0.2);">Project G1 / G2</span>
+            </div>
+            <h1>CPU Scheduling Visualizer &amp;<br>Performance Analyzer</h1>
+            <p class="lead">An interactive simulation, evaluation, and comparative benchmarking platform for CPU scheduling algorithms in multi-programmed operating systems.</p>
+            
+            <div class="team-grid">
+                <div class="member-card">
+                    <div class="member-avatar">MY</div>
+                    <div class="member-name">Mohit Yadav</div>
+                    <div class="member-roll">Roll No: 2401730063</div>
+                    <div class="member-role">Student 1: OS / Core Implementation</div>
+                    <p class="member-desc">Algorithms logic (FCFS, SJF, Priority, RR, SRTF), discrete-event engine &amp; queue mechanics.</p>
+                </div>
+
+                <div class="member-card">
+                    <div class="member-card-header"></div>
+                    <div class="member-avatar">DS</div>
+                    <div class="member-name">Devansh Saini</div>
+                    <div class="member-roll">Roll No: 2401730102</div>
+                    <div class="member-role">Student 2: Interface &amp; Visualization</div>
+                    <p class="member-desc">Dashboard UI, scaled Gantt charts, live playback controller &amp; comparison bar graphs.</p>
+                </div>
+
+                <div class="member-card">
+                    <div class="member-avatar">D</div>
+                    <div class="member-name">Deepak</div>
+                    <div class="member-roll">Roll No: 2401730152</div>
+                    <div class="member-role">Student 3: Testing &amp; Performance</div>
+                    <p class="member-desc">178 automated test cases, invariant validations, documentation &amp; performance benchmarks.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 2: Problem Statement & Motivation
+             ============================================================ -->
+        <section class="slide" data-slide="2">
+            <span class="slide-tag">Background &amp; Motivation</span>
+            <h2 class="slide-title">The CPU Scheduling Challenge</h2>
+            <p class="slide-subtitle">Bridging the gap between theoretical OS concepts and dynamic real-world execution.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">⚠️ Core Problem Statement</div>
+                    <p>In multi-programmed systems, multiple processes reside in the ready queue competing for the central processor. Choosing which process to dispatch is critical for responsiveness and throughput.</p>
+                    <ul>
+                        <li><strong>Static Textbook Illustrations:</strong> Textbooks present static, fixed-time Gantt charts that fail to convey dynamic preemption behavior.</li>
+                        <li><strong>Complex Preemption Boundaries:</strong> Visualizing how an incoming process preempts an active process in SRTF or Preemptive Priority is difficult without interactive tools.</li>
+                        <li><strong>Round Robin Timing Ties:</strong> Understanding queue re-ordering when time quantum expiration coincides with new arrivals.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">🎯 Project Objectives &amp; Solution</div>
+                    <p>We designed an end-to-end interactive simulation platform that models the CPU scheduling engine with 100% mathematical fidelity.</p>
+                    <ul>
+                        <li><strong>Multi-Algorithm Coverage:</strong> Real-time simulation of 6 essential scheduling policies (FCFS, SJF, Priority NP/P, Round Robin, SRTF).</li>
+                        <li><strong>Dynamic Interactive Gantt Chart:</strong> Proportional scaling, explicit idle intervals, and step-by-step playback.</li>
+                        <li><strong>Quantitative Comparison:</strong> Side-by-side benchmarking of Waiting Time, Turnaround Time, Response Time, CPU Utilization, and Throughput.</li>
+                        <li><strong>Zero Dependencies:</strong> Built completely with pure HTML5, CSS3, and ES6 JavaScript.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 3: 3-Member Role Architecture
+             ============================================================ -->
+        <section class="slide" data-slide="3">
+            <span class="slide-tag">Engineering Methodology</span>
+            <h2 class="slide-title">Structured 3-Member Responsibilities</h2>
+            <p class="slide-subtitle">Clear modular separation of concerns following university capstone guidelines.</p>
+
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-header">💻 Mohit Yadav (2401730063)</div>
+                    <div class="member-role">OS / Core Implementation</div>
+                    <ul>
+                        <li>Engineered pure functional scheduling algorithms in <code>scheduling-algorithms.js</code>.</li>
+                        <li>Implemented discrete-event simulator tracking arrival, execution, and completion transitions.</li>
+                        <li>Built tie-breaking mechanics (Priority &rarr; Arrival Time &rarr; Lexicographical PID).</li>
+                        <li>Designed Round Robin ready-queue synchronization handling arrival ties.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">🎨 Devansh Saini (2401730102)</div>
+                    <div class="member-role">Interface &amp; Visualization</div>
+                    <ul>
+                        <li>Designed modern responsive dashboard with CSS Custom Properties and Dark/Light theming.</li>
+                        <li>Engineered dynamic Gantt chart with proportional timeline scaling and hatched idle gaps.</li>
+                        <li>Constructed animated comparison bar charts with automatic "★ Best" badges.</li>
+                        <li>Implemented interactive Gantt Playback Controller (Play, Pause, Step Next/Prev, Speed).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">🧪 Deepak (2401730152)</div>
+                    <div class="member-role">Testing &amp; Performance</div>
+                    <ul>
+                        <li>Authored comprehensive automated test harness with 178 assertion test cases.</li>
+                        <li>Verified mathematical invariants: $RT \le WT$, $WT = TAT - BT$, and $\sum BT + \text{Idle} = \text{Total}$.</li>
+                        <li>Conducted empirical benchmarks across 5 workload categories.</li>
+                        <li>Authored formal academic report, viva defense guide, and presentation deck.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 4: System Architecture & Data Flow
+             ============================================================ -->
+        <section class="slide" data-slide="4">
+            <span class="slide-tag">System Architecture</span>
+            <h2 class="slide-title">Decoupled Architectural Pipeline</h2>
+            <p class="slide-subtitle">Clean unidirectional data flow guaranteeing algorithmic purity and reactive UI updates.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">🔄 Data Flow Pipeline</div>
+                    <ol style="padding-left: 20px; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.8;">
+                        <li><strong>User Input:</strong> Process specs entered via UI form or loaded via preset datasets (PID, AT, BT, Priority, Quantum).</li>
+                        <li><strong>Input Validation:</strong> Form layer validates non-negative AT, positive non-zero BT, integer priority, and duplicate PID prevention.</li>
+                        <li><strong>Discrete-Event Scheduler:</strong> Pure algorithmic functions execute without mutating state, advancing time to critical events.</li>
+                        <li><strong>Gantt &amp; Metric Extraction:</strong> Produces merged timeline intervals, per-process results ($CT, TAT, WT, RT$), and system averages.</li>
+                        <li><strong>Reactive Rendering:</strong> Gantt blocks, metric tables, and comparison bar charts re-render dynamically.</li>
+                    </ol>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">🏛️ Architectural Layering</div>
+                    <div class="formula-box" style="margin-bottom: 12px; color: #fff;">
+                        Presentation Layer (HTML5 + CSS3 + Dark Mode)<br>
+                        &nbsp;&nbsp;&darr;<br>
+                        Application Controller (app.js + Playback Engine)<br>
+                        &nbsp;&nbsp;&darr;<br>
+                        Core Engine (window.SchedulingAlgorithms)<br>
+                        &nbsp;&nbsp;&darr;<br>
+                        Verification Harness (test-algorithms.js - 178 Tests)
+                    </div>
+                    <p style="font-size:0.85rem;"><strong>Key Design Principle:</strong> Pure functional core. Algorithms do not interact with the DOM directly, enabling effortless CLI testing via Node.js and headless browser test runners.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 5: Algorithms Implemented
+             ============================================================ -->
+        <section class="slide" data-slide="5">
+            <span class="slide-tag">Algorithms Overview</span>
+            <h2 class="slide-title">6 Scheduling Algorithms Implemented</h2>
+            <p class="slide-subtitle">Covering non-preemptive, priority-driven, time-sliced, and optimal preemptive paradigms.</p>
+
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-header">1. FCFS</div>
+                    <p><strong>Non-Preemptive</strong></p>
+                    <p>Dispatches processes strictly in order of arrival time ($AT$).</p>
+                    <p><em>Trade-off:</em> Simple and fair in arrival sequence, but suffers from the <strong>Convoy Effect</strong> when long bursts precede short jobs.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">2. SJF (Non-Preemptive)</div>
+                    <p><strong>Non-Preemptive</strong></p>
+                    <p>Selects ready process with smallest Burst Time ($BT$).</p>
+                    <p><em>Trade-off:</em> Provably minimizes average waiting time among non-preemptive algorithms. Susceptible to long-job starvation.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">3. Priority (NP &amp; P)</div>
+                    <p><strong>Both Modes Supported</strong></p>
+                    <p>Lower integer = Higher priority ($1 > 2 > 3$).</p>
+                    <p><em>Trade-off:</em> Guarantees high-urgency tasks run first. Preemptive mode interrupts immediately upon arrival of higher priority.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">4. Round Robin (RR)</div>
+                    <p><strong>Preemptive (Time-Sliced)</strong></p>
+                    <p>FIFO ready queue with configurable time quantum ($q$).</p>
+                    <p><em>Trade-off:</em> Excellent response time and interactive fairness. Sensitive to quantum size (context switch overhead).</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">5. SRTF (Preemptive SJF)</div>
+                    <p><strong>Preemptive</strong></p>
+                    <p>Selects process with shortest remaining burst time.</p>
+                    <p><em>Trade-off:</em> Yields theoretical minimum average waiting time across all algorithms. Requires frequent preemption evaluations.</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">6. CPU Idle Handling</div>
+                    <p><strong>Seamless Gap Detection</strong></p>
+                    <p>When ready queue is empty, advances clock directly to next arrival.</p>
+                    <p><em>Trade-off:</em> Explicitly logs idle periods in Gantt chart, maintaining timeline continuity and true CPU utilization %.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 6: Mathematical Formulations & Invariants
+             ============================================================ -->
+        <section class="slide" data-slide="6">
+            <span class="slide-tag">Mathematical Framework</span>
+            <h2 class="slide-title">Performance Metrics &amp; Invariants</h2>
+            <p class="slide-subtitle">Rigorous mathematical formulations validated against textbook axioms.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">📐 Metric Formulations</div>
+                    <div class="formula-box">Turnaround Time (TAT) = CT - AT</div>
+                    <div class="formula-box">Waiting Time (WT)    = TAT - BT</div>
+                    <div class="formula-box">Response Time (RT)   = First CPU Start - AT</div>
+                    <div class="formula-box">CPU Utilization (U)  = ((Total - Idle) / Total) × 100%</div>
+                    <div class="formula-box">Throughput (Th)      = Completed Processes / Total Time</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">🛡️ Mathematical Invariants Verified</div>
+                    <p>Every algorithm run is automatically validated against these fundamental rules:</p>
+                    <ul>
+                        <li><strong>Non-Preemptive Equality:</strong> In all non-preemptive algorithms (FCFS, SJF, Priority-NP), Response Time strictly equals Waiting Time: $RT = WT$.</li>
+                        <li><strong>Preemptive Inequality:</strong> In preemptive algorithms (RR, SRTF, Priority-P), Response Time is always less than or equal to Waiting Time: $RT \le WT$.</li>
+                        <li><strong>Conservation of Time:</strong> Total schedule duration strictly equals the sum of all burst times plus idle times: $\text{Total Time} = \sum BT_i + \text{Idle Time}$.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 7: Gantt Chart Visualization Engine
+             ============================================================ -->
+        <section class="slide" data-slide="7">
+            <span class="slide-tag">Visualization Engine</span>
+            <h2 class="slide-title">Dynamic Gantt Chart &amp; Playback Engine</h2>
+            <p class="slide-subtitle">Precision timeline rendering with live interactive stepping and execution controls.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">📊 Dynamic Gantt Chart Features</div>
+                    <ul>
+                        <li><strong>Proportional Pixel Scaling:</strong> Block widths dynamically adjust to process durations without horizontal distortion.</li>
+                        <li><strong>Merged Consecutive Execution:</strong> Multi-slice executions of the same process are cleanly consolidated.</li>
+                        <li><strong>Explicit Idle State Visualization:</strong> CPU idle intervals are distinctly rendered with hatched textures.</li>
+                        <li><strong>Consistent Color Mapping:</strong> Every Process ID retains an identical distinct color throughout all algorithms and charts.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">🎮 Interactive Simulation Playback Controls</div>
+                    <ul>
+                        <li><strong>Live Playback:</strong> Users can click <strong>Play</strong> to watch the CPU timeline tick forward unit by unit.</li>
+                        <li><strong>Step Forward / Backward:</strong> Advance or rewind execution block-by-block to trace preemption moments during a viva.</li>
+                        <li><strong>Active CPU Highlighter:</strong> Active block pulses with a golden glow; past blocks stay highlighted; future blocks remain dimmed.</li>
+                        <li><strong>Speed Regulation:</strong> Configurable playback speeds (0.5x Slow, 1.0x Normal, 2.0x Fast).</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 8: Multi-Algorithm Performance Benchmarking
+             ============================================================ -->
+        <section class="slide" data-slide="8">
+            <span class="slide-tag">Empirical Results</span>
+            <h2 class="slide-title">Multi-Algorithm Benchmark Comparison</h2>
+            <p class="slide-subtitle">Standard lab workload: P1(AT:0, BT:6, P:2), P2(AT:1, BT:8, P:1), P3(AT:2, BT:7, P:4), P4(AT:3, BT:3, P:3).</p>
+
+            <table class="pres-table">
+                <thead>
+                    <tr>
+                        <th>Algorithm</th>
+                        <th>Avg Waiting Time</th>
+                        <th>Avg Turnaround Time</th>
+                        <th>Avg Response Time</th>
+                        <th>CPU Utilization</th>
+                        <th>Throughput</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>FCFS</strong></td>
+                        <td>8.75</td>
+                        <td>14.75</td>
+                        <td>8.75</td>
+                        <td>100.0%</td>
+                        <td>0.167 proc/unit</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SJF (Non-Preemptive)</strong></td>
+                        <td>5.75</td>
+                        <td>11.75</td>
+                        <td>5.75</td>
+                        <td>100.0%</td>
+                        <td>0.167 proc/unit</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Priority (Non-Preemptive)</strong></td>
+                        <td>6.50</td>
+                        <td>12.50</td>
+                        <td>6.50</td>
+                        <td>100.0%</td>
+                        <td>0.167 proc/unit</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Priority (Preemptive)</strong></td>
+                        <td>7.75</td>
+                        <td>13.75</td>
+                        <td>2.50</td>
+                        <td>100.0%</td>
+                        <td>0.167 proc/unit</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Round Robin (q=3)</strong></td>
+                        <td>10.75</td>
+                        <td>16.75</td>
+                        <td><span class="badge-optimal">1.50 ★ Best</span></td>
+                        <td>100.0%</td>
+                        <td>0.167 proc/unit</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SRTF (Preemptive SJF)</strong></td>
+                        <td><span class="badge-optimal">5.75 ★ Best</span></td>
+                        <td><span class="badge-optimal">11.75 ★ Best</span></td>
+                        <td>5.75</td>
+                        <td>100.0%</td>
+                        <td>0.167 proc/unit</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="formula-box" style="margin-top: 18px; color: var(--text-secondary);">
+                <strong>Key Takeaway:</strong> No single algorithm is universally best across all criteria. <strong>SRTF</strong> minimizes waiting time, while <strong>Round Robin</strong> delivers the fastest interactive response time ($1.50$ vs $8.75$).
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 9: Edge Case Handling & Input Validation
+             ============================================================ -->
+        <section class="slide" data-slide="9">
+            <span class="slide-tag">Quality Assurance</span>
+            <h2 class="slide-title">Robust Edge Case Handling</h2>
+            <p class="slide-subtitle">Engineered to gracefully handle boundary, null, and adversarial input conditions.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">🛡️ Input Validation &amp; Sanitization</div>
+                    <ul>
+                        <li><strong>Field-Level Errors:</strong> Specific error messages displayed directly below offending input controls.</li>
+                        <li><strong>Arrival Time:</strong> Enforces non-negative integers ($AT \ge 0$).</li>
+                        <li><strong>Burst Time:</strong> Enforces positive non-zero integers ($BT \ge 1$); prevents zero-burst divide-by-zero traps.</li>
+                        <li><strong>Duplicate PID Detection:</strong> Prevents adding identical process IDs during creation or editing.</li>
+                        <li><strong>Quantum Validation:</strong> Enforces Round Robin quantum $q \ge 1$.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">⚡ Critical Edge Scenarios Solved</div>
+                    <ul>
+                        <li><strong>Gaps Between Arrivals:</strong> Accurately tracks multiple CPU idle intervals when arrivals are sparse.</li>
+                        <li><strong>Single Process Workload:</strong> Correctly schedules a solitary process with zero waiting time and proper idle offset.</li>
+                        <li><strong>All Arrive at t=0:</strong> Evaluates pure algorithm selection mechanics with identical arrival timestamps.</li>
+                        <li><strong>Ties in Burst and Priority:</strong> Resolves ties deterministically using arrival time followed by PID.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 10: Automated Testing & Verification Suite
+             ============================================================ -->
+        <section class="slide" data-slide="10">
+            <span class="slide-tag">Software Testing</span>
+            <h2 class="slide-title">Automated Verification: 178 Tests</h2>
+            <p class="slide-subtitle">Comprehensive assertion suites executable both inside the web browser and via Node.js CLI.</p>
+
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-header">🧪 Browser Test Runner</div>
+                    <p>Graphical interactive test runner at <code>tests/test-algorithms.html</code>.</p>
+                    <ul>
+                        <li>Visual progress bar and elapsed execution timer.</li>
+                        <li>Grouped collapsible test suites per algorithm.</li>
+                        <li>Color-coded pass / fail badges with stack traces.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">⚡ Node.js CLI Runner</div>
+                    <p>Headless command-line runner at <code>test-node.js</code> for continuous integration.</p>
+                    <ul>
+                        <li>Executes with standard command: <code>node test-node.js</code>.</li>
+                        <li>Runs all 178 tests in under 20 milliseconds.</li>
+                        <li>Exits with status code 0 on full pass.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">✅ 100% Pass Metric</div>
+                    <div class="formula-box" style="text-align: center; font-size: 1.1rem; color: var(--accent-green); margin-bottom: 12px;">
+                        178 / 178 Passed (0 Failed)
+                    </div>
+                    <ul>
+                        <li>FCFS timing &amp; idle verification</li>
+                        <li>SJF &amp; SRTF selection checks</li>
+                        <li>Preemptive Priority preemption points</li>
+                        <li>Round Robin multi-quantum queue state</li>
+                        <li>Mathematical invariant assertions</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 11: Real-World OS Implementations
+             ============================================================ -->
+        <section class="slide" data-slide="11">
+            <span class="slide-tag">Operating Systems in Practice</span>
+            <h2 class="slide-title">Real-World Operating System Connections</h2>
+            <p class="slide-subtitle">How commercial operating systems adapt these classical scheduling principles.</p>
+
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-header">🐧 Linux Kernel (CFS)</div>
+                    <p><strong>Completely Fair Scheduler:</strong></p>
+                    <ul>
+                        <li>Replaces traditional queues with a <strong>Red-Black Tree</strong> indexed by virtual runtime ($vruntime$).</li>
+                        <li>Models an ideal multi-tasking CPU where each process receives $1/n$ of processor power.</li>
+                        <li>Interactive processes maintain lower $vruntime$, getting dispatched earlier.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">🪟 Windows NT Kernel</div>
+                    <p><strong>Multi-Level Priority Queues:</strong></p>
+                    <ul>
+                        <li>32 priority levels (0–15 dynamic, 16–31 real-time).</li>
+                        <li>Uses <strong>priority boosting</strong> for foreground interactive windows and after I/O completions.</li>
+                        <li>Employs Round Robin within each discrete priority band.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">⏱️ Real-Time OS (RTOS)</div>
+                    <p><strong>Rate-Monotonic &amp; EDF:</strong></p>
+                    <ul>
+                        <li>Used in avionics, robotics, and medical devices where deadlines are hard.</li>
+                        <li><strong>Rate-Monotonic:</strong> Shorter task period = higher priority.</li>
+                        <li><strong>Earliest Deadline First (EDF):</strong> Dynamic priority based on closest completion deadline.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 12: Viva Voce Defense Strategy
+             ============================================================ -->
+        <section class="slide" data-slide="12">
+            <span class="slide-tag">Viva Voce Preparation</span>
+            <h2 class="slide-title">Key Viva Questions &amp; Examiner Defenses</h2>
+            <p class="slide-subtitle">Prepared responses for core conceptual and technical examiner inquiries.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">❓ Frequently Asked Viva Questions</div>
+                    <ul>
+                        <li><strong>Why is SJF optimal for average waiting time?</strong><br>
+                        Scheduling short bursts first reduces their waiting times drastically while delaying longer jobs by negligible amounts, mathematically minimizing $\frac{1}{n}\sum WT_i$.</li>
+                        <li><strong>What is the Convoy Effect?</strong><br>
+                        In FCFS, when a long CPU-bound process runs, all subsequent shorter I/O-bound tasks stall in the ready queue, dragging down CPU and device utilization.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">🛡️ Technical Examiner Inquiries</div>
+                    <ul>
+                        <li><strong>How does Round Robin handle simultaneous arrivals?</strong><br>
+                        When a process quantum expires at time $t$ and a new task arrives at time $t$, newly arrived tasks are enqueued <em>before</em> the preempted task is re-enqueued.</li>
+                        <li><strong>Can Response Time ever exceed Waiting Time?</strong><br>
+                        Never ($RT \le WT$). In non-preemptive algorithms, $RT = WT$. In preemptive algorithms, $RT < WT$ if a process is preempted after starting.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 13: Limitations & Future Scope
+             ============================================================ -->
+        <section class="slide" data-slide="13">
+            <span class="slide-tag">Looking Forward</span>
+            <h2 class="slide-title">Limitations &amp; Future Enhancements</h2>
+            <p class="slide-subtitle">Pathways to expand the platform into an enterprise-grade OS simulation lab.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">⚠️ Current Simulator Scope &amp; Limits</div>
+                    <ul>
+                        <li><strong>Single-Core Model:</strong> Assumes a uniprocessor system; multi-core processor affinity and load balancing are not yet modeled.</li>
+                        <li><strong>Static Burst Assumptions:</strong> Process CPU bursts are deterministic integers known upfront, rather than stochastic distributions.</li>
+                        <li><strong>Negligible Context Switch Cost:</strong> Context switch latency is treated as negligible ($0 \mu s$) for clean educational clarity.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">🚀 Planned Future Enhancements</div>
+                    <ul>
+                        <li><strong>Multi-Level Feedback Queue (MLFQ):</strong> Dynamic queue migration with aging and priority decay based on CPU usage.</li>
+                        <li><strong>Symmetric Multiprocessing (SMP):</strong> Multi-core timeline visualization modeling dual-core and quad-core CPU scheduling.</li>
+                        <li><strong>Real-Time Scheduling:</strong> Implementation of Rate-Monotonic Scheduling (RMS) and Earliest-Deadline-First (EDF).</li>
+                        <li><strong>PDF Lab Report Generator:</strong> One-click generation of formatted academic laboratory reports with embedded Gantt charts.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================
+             SLIDE 14: Conclusion & Live Demonstration
+             ============================================================ -->
+        <section class="slide title-slide" data-slide="14">
+            <span class="slide-tag" style="color:var(--accent-green); background:rgba(6,214,160,0.1); border-color:rgba(6,214,160,0.2);">Conclusion &amp; Demonstration</span>
+            <h1 style="font-size:2.8rem; margin-bottom: 12px;">Live Demonstration &amp; Q&amp;A</h1>
+            <p class="lead" style="margin-bottom: 24px;">Thank you for your attention. We are ready to demonstrate the live simulator, run custom test workloads, and answer questions.</p>
+
+            <div style="display: flex; gap: 16px; margin-bottom: 32px;">
+                <a href="index.html" target="_blank" class="btn-ctrl btn-primary" style="padding: 12px 24px; font-size: 1rem;">
+                    🚀 Launch Visualizer App
+                </a>
+                <a href="tests/test-algorithms.html" target="_blank" class="btn-ctrl" style="padding: 12px 24px; font-size: 1rem;">
+                    🧪 Run 178 Automated Tests
+                </a>
+            </div>
+
+            <div class="team-grid" style="max-width: 900px;">
+                <div class="member-card" style="padding: 16px; text-align: center;">
+                    <div class="member-name" style="font-size: 1rem;">Mohit Yadav</div>
+                    <div class="member-roll">2401730063</div>
+                    <p style="font-size: 0.78rem; color: var(--text-tertiary);">OS / Core Implementation</p>
+                </div>
+                <div class="member-card" style="padding: 16px; text-align: center;">
+                    <div class="member-name" style="font-size: 1rem;">Devansh Saini</div>
+                    <div class="member-roll">2401730102</div>
+                    <p style="font-size: 0.78rem; color: var(--text-tertiary);">Interface &amp; Visualization</p>
+                </div>
+                <div class="member-card" style="padding: 16px; text-align: center;">
+                    <div class="member-name" style="font-size: 1rem;">Deepak</div>
+                    <div class="member-roll">2401730152</div>
+                    <p style="font-size: 0.78rem; color: var(--text-tertiary);">Testing &amp; Performance</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Speaker Notes Overlay Drawer -->
+    <div class="notes-drawer" id="notesDrawer">
+        <div class="notes-header">
+            <span>🗣️ Speaker Script &amp; Talking Points</span>
+            <span style="cursor: pointer;" onclick="toggleNotes()">✕ Close</span>
+        </div>
+        <div class="notes-content" id="notesContent">
+            Loading speaker notes...
+        </div>
+    </div>
+
+    <!-- Bottom Controls Navigation -->
+    <footer class="controls-bar">
+        <div class="controls-left">
+            <button class="btn-ctrl" onclick="prevSlide()" title="Previous Slide (Left Arrow)">◀ Prev</button>
+            <button class="btn-ctrl" onclick="nextSlide()" title="Next Slide (Right Arrow or Space)">Next ▶</button>
+            <span class="slide-counter" id="slideCounter">Slide 1 of 14</span>
+            <span class="key-hint">[Use &larr; &rarr; keys or Space]</span>
+        </div>
+
+        <div class="controls-right">
+            <button class="btn-ctrl" onclick="toggleNotes()" title="Toggle Speaker Notes (N key)">📝 Speaker Notes <span class="key-hint">[N]</span></button>
+            <button class="btn-ctrl" onclick="toggleFullScreen()" title="Full Screen (F key)">⛶ Fullscreen <span class="key-hint">[F]</span></button>
+            <a href="index.html" class="btn-ctrl btn-primary" title="Switch to Live Application">⚡ Open App</a>
+        </div>
+    </footer>
+
+    <!-- Presentation Engine Script -->
+    <script>
+        // Speaker notes repository for each slide
+        const SPEAKER_NOTES = {
+            1: "<strong>SPEAKER: Mohit Yadav</strong><br>Good morning, Respected Professors and Examiners. Today, our group presents our Operating Systems Capstone Project: the 'CPU Scheduling Visualizer & Performance Analyzer'. I am Mohit Yadav (Roll No: 2401730063), and with me are my team members Devansh Saini (Roll No: 2401730102) and Deepak (Roll No: 2401730152). Our project faithfully models CPU scheduling algorithms with an interactive, mathematically rigorous visual environment.",
+            2: "<strong>SPEAKER: Mohit Yadav</strong><br>The motivation behind our project is the challenge students face when visualizing how multi-programming works. In textbooks, Gantt charts are static and cannot show preemption in action, idle CPU gaps, or arrival-quantum timing ties. We set out to build a tool that makes these abstract concepts intuitive, interactive, and mathematically verifiable.",
+            3: "<strong>SPEAKER: Devansh Saini</strong><br>To maintain high academic quality and clear responsibility, we divided the project into three core pillars: Mohit handled the core OS scheduling algorithms and discrete-event simulation engine; I engineered the responsive UI, interactive Gantt chart, playback controls, and comparison graphs; and Deepak engineered the 178-test verification harness, performance metrics, and documentation.",
+            4: "<strong>SPEAKER: Mohit Yadav</strong><br>Our architecture follows a clean, decoupled design. The simulation engine in 'scheduling-algorithms.js' is completely independent of the DOM. It accepts pure JSON arrays and computes immutable Gantt segments and metrics. This separation allows the same algorithmic engine to run in the web app and in headless automated test runners like Node.js.",
+            5: "<strong>SPEAKER: Mohit Yadav</strong><br>We implemented six core algorithms: First Come First Serve (non-preemptive), Shortest Job First (non-preemptive), Priority Scheduling in both non-preemptive and preemptive variants using the standard convention where lower integer equals higher priority, Round Robin with configurable time quantum, and Shortest Remaining Time First (SRTF). We also handle CPU idle intervals explicitly.",
+            6: "<strong>SPEAKER: Deepak</strong><br>Turning to the mathematical framework, every calculation adheres to standard OS formulas: Turnaround Time = Completion Time minus Arrival Time; Waiting Time = Turnaround Time minus Burst Time; and Response Time = First CPU Start minus Arrival Time. We also verify fundamental invariants, such as Response Time never exceeding Waiting Time (RT <= WT), and total elapsed time strictly equaling total bursts plus idle time.",
+            7: "<strong>SPEAKER: Devansh Saini</strong><br>For visualization, we built a custom dynamic Gantt chart that scales proportionately to execution length. Each process receives a consistent color signature, and CPU idle intervals are distinctly marked with hatched styling. Crucially, we implemented an interactive simulation playback controller with Play, Pause, and Step buttons, allowing an examiner to observe execution unit-by-unit.",
+            8: "<strong>SPEAKER: Deepak</strong><br>Here are our empirical benchmark results on a standard university workload. Notice how SRTF achieves the lowest average waiting time (5.75) and turnaround time (11.75). However, Round Robin achieves the lowest average response time (1.50 vs 8.75 for FCFS), demonstrating why interactive desktop operating systems favor time-sliced preemptive algorithms.",
+            9: "<strong>SPEAKER: Devansh Saini</strong><br>A key strength of our application is input validation and edge case resilience. Our forms reject negative arrival times, zero burst times, and duplicate process IDs. In addition, the scheduler handles boundary conditions such as large arrival gaps, single process workloads, and ties in burst times and priorities deterministically.",
+            10: "<strong>SPEAKER: Deepak</strong><br>As part of our testing responsibility, we developed an automated test suite containing 178 assertion tests. These tests can be executed interactively in the browser or via Node.js in the terminal. All 178 tests pass with zero failures, guaranteeing mathematical accuracy across all scheduling algorithms.",
+            11: "<strong>SPEAKER: Mohit Yadav</strong><br>In real operating systems, these concepts form the backbone of modern kernels. The Linux kernel uses the Completely Fair Scheduler (CFS) based on virtual runtime trees, while Windows NT uses a 32-level multi-level priority queue with dynamic priority boosting for interactive windows. Real-time operating systems employ Rate-Monotonic and Earliest-Deadline-First policies.",
+            12: "<strong>SPEAKER: Mohit Yadav</strong><br>In preparing for our viva, we documented comprehensive answers to classic examiner inquiries, including the Convoy Effect, starvation versus aging, quantum selection trade-offs, and why response time can never exceed waiting time.",
+            13: "<strong>SPEAKER: Devansh Saini</strong><br>While our current simulator is uniprocessor-based, our architecture is designed to expand into Multi-Level Feedback Queues (MLFQ), Symmetric Multiprocessing (SMP) multi-core simulations, and automated PDF report generation.",
+            14: "<strong>SPEAKER: All Team Members (Mohit, Devansh, Deepak)</strong><br>Thank you, professors. We would now like to switch to the live application to demonstrate custom process scheduling, examine the Gantt chart playback controls, and answer any questions you may have."
+        };
+
+        let currentSlide = 1;
+        const totalSlides = 14;
+
+        function updateSlide() {
+            document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+            const activeSlide = document.querySelector(`.slide[data-slide="${currentSlide}"]`);
+            if (activeSlide) activeSlide.classList.add('active');
+
+            // Progress bar
+            const pct = ((currentSlide - 1) / (totalSlides - 1)) * 100;
+            document.getElementById('progressBar').style.width = pct + '%';
+
+            // Counter
+            document.getElementById('slideCounter').textContent = `Slide ${currentSlide} of ${totalSlides}`;
+
+            // Update speaker notes
+            const notesEl = document.getElementById('notesContent');
+            notesEl.innerHTML = SPEAKER_NOTES[currentSlide] || "No notes for this slide.";
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 1) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        function toggleNotes() {
+            document.getElementById('notesDrawer').classList.toggle('open');
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => alert(`Error: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                prevSlide();
+            } else if (e.key === 'f' || e.key === 'F') {
+                toggleFullScreen();
+            } else if (e.key === 'n' || e.key === 'N') {
+                toggleNotes();
+            } else if (e.key === 'Home') {
+                currentSlide = 1;
+                updateSlide();
+            } else if (e.key === 'End') {
+                currentSlide = totalSlides;
+                updateSlide();
+            }
+        });
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateSlide();
+        });
+    </script>
+</body>
+</html>

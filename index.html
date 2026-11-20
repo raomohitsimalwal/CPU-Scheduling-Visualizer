@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<!--
+  CPU Scheduling Visualizer & Performance Analyzer
+  =================================================
+  A comprehensive interactive application for visualizing and comparing
+  CPU scheduling algorithms used in Operating Systems.
+  
+  Technologies: HTML5, CSS3, Vanilla JavaScript (ES6)
+  No external dependencies or build tools required.
+  
+  Author: Student Project - Operating Systems Course
+  Date: November 2026
+-->
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Scheduling Visualizer & Performance Analyzer</title>
+    
+    <!-- Google Fonts: Inter for clean, modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Favicon (inline SVG as data URI) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+</head>
+<body>
+    <!-- ================================================================
+         Toast Notification Container
+         Positioned fixed at top-right corner for feedback messages
+         ================================================================ -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ================================================================
+         App Container: Sidebar + Main Content
+         ================================================================ -->
+    <div class="app-container">
+        
+        <!-- ============================================================
+             Sidebar Navigation
+             Fixed left sidebar with navigation links for each section
+             ============================================================ -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Logo / Brand -->
+            <div class="sidebar-header">
+                <a class="sidebar-logo" href="#" onclick="return false;">
+                    <div class="logo-icon">⚙️</div>
+                    <div class="logo-text">
+                        CPU Scheduler
+                        <small>Visualizer & Analyzer</small>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Main</div>
+                
+                <button class="nav-link active" data-section="dashboard" onclick="navigateTo('dashboard')">
+                    <span class="nav-icon">📊</span>
+                    Dashboard
+                </button>
+                
+                <button class="nav-link" data-section="process-input" onclick="navigateTo('process-input')">
+                    <span class="nav-icon">📝</span>
+                    Process Input
+                </button>
+
+                <div class="nav-section-title">Analysis</div>
+                
+                <button class="nav-link" data-section="scheduling" onclick="navigateTo('scheduling')">
+                    <span class="nav-icon">🔄</span>
+                    Scheduling Algorithms
+                </button>
+                
+                <button class="nav-link" data-section="gantt" onclick="navigateTo('gantt')">
+                    <span class="nav-icon">📈</span>
+                    Gantt Chart
+                </button>
+                
+                <button class="nav-link" data-section="performance" onclick="navigateTo('performance')">
+                    <span class="nav-icon">📉</span>
+                    Performance Analysis
+                </button>
+                
+                <button class="nav-link" data-section="comparison" onclick="navigateTo('comparison')">
+                    <span class="nav-icon">⚖️</span>
+                    Algorithm Comparison
+                </button>
+
+                <div class="nav-section-title">Reference</div>
+                
+                <button class="nav-link" data-section="learn" onclick="navigateTo('learn')">
+                    <span class="nav-icon">📚</span>
+                    Learn Algorithms
+                </button>
+                
+                <button class="nav-link" data-section="about" onclick="navigateTo('about')">
+                    <span class="nav-icon">ℹ️</span>
+                    About Project & Team
+                </button>
+
+                <a class="nav-link" href="presentation.html" target="_blank" style="text-decoration:none;">
+                    <span class="nav-icon">📽️</span>
+                    Presentation Slides (Web)
+                </a>
+
+                <a class="nav-link" href="CPU_Scheduling_Visualizer_Presentation.pptx" download style="text-decoration:none;">
+                    <span class="nav-icon">📊</span>
+                    PowerPoint (.pptx)
+                </a>
+
+                <a class="nav-link" href="tests/test-algorithms.html" target="_blank" style="text-decoration:none;">
+                    <span class="nav-icon">🧪</span>
+                    Test Suite (178 Tests)
+                </a>
+
+                <button class="nav-link" onclick="window.print()" style="text-decoration:none;">
+                    <span class="nav-icon">🖨️</span>
+                    Export / Print Report
+                </button>
+            </nav>
+
+            <!-- Theme Toggle -->
+            <div class="sidebar-footer">
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <span id="themeLabel">🌙 Dark Mode</span>
+                    <span id="themeIcon">🌙</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Mobile sidebar overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+        <!-- ============================================================
+             Main Content Area
+             Contains all sections, only one visible at a time
+             ============================================================ -->
+        <main class="main-content">
+            <!-- Mobile menu toggle -->
+            <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">☰</button>
+
+            <!-- ========================================================
+                 SECTION 1: Dashboard
+                 Overview with stats, quick actions, and summary
+                 ======================================================== -->
+            <section class="section active" id="section-dashboard">
+                <div class="page-header">
+                    <div>
+                        <h1>📊 Dashboard</h1>
+                        <p class="page-subtitle">Overview of your CPU scheduling simulation</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="navigateTo('process-input')">
+                            ➕ Add Processes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid" id="dashboardStats">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">📋</div>
+                        <div class="stat-info">
+                            <h4>Total Processes</h4>
+                            <div class="stat-value" id="statTotalProcesses">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">⏱️</div>
+                        <div class="stat-info">
+                            <h4>Total Burst Time</h4>
+                            <div class="stat-value" id="statTotalBurst">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon pink">🏆</div>
+                        <div class="stat-info">
+                            <h4>Best Algorithm</h4>
+                            <div class="stat-value" id="statBestAlgo" style="font-size:1.1rem;">—</div>
+                            <div class="stat-change" id="statBestAlgoMetric"></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">⏳</div>
+                        <div class="stat-info">
+                            <h4>Avg Waiting Time</h4>
+                            <div class="stat-value" id="statAvgWT">—</div>
+                            <div class="stat-change" id="statAvgWTAlgo"></div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">🔄</div>
+                        <div class="stat-info">
+                            <h4>CPU Utilization</h4>
+                            <div class="stat-value" id="statCPUUtil">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon cyan">📊</div>
+                        <div class="stat-info">
+                            <h4>Throughput</h4>
+                            <div class="stat-value" id="statThroughput">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Start Card -->
+                <div class="card" id="dashboardQuickStart">
+                    <div class="card-header">
+                        <div class="card-title">🚀 Quick Start Guide</div>
+                    </div>
+                    <div class="step-container">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-text"><strong>Add Processes</strong> — Enter process details (ID, Arrival Time, Burst Time, Priority) in the Process Input section, or load a sample dataset.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-text"><strong>Choose Algorithm</strong> — Select a scheduling algorithm (FCFS, SJF, Priority, Round Robin, or SRTF) from the Scheduling Algorithms section.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-text"><strong>View Gantt Chart</strong> — Visualize the execution timeline showing which process runs at each time unit.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">4</div>
+                            <div class="step-text"><strong>Analyze Performance</strong> — Review detailed metrics including Waiting Time, Turnaround Time, Response Time, and CPU Utilization.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">5</div>
+                            <div class="step-text"><strong>Compare Algorithms</strong> — Use the comparison module to see which algorithm performs best for your process set.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Process Table (Dashboard Preview) -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📋 Current Processes</div>
+                        <button class="btn btn-sm btn-secondary" onclick="navigateTo('process-input')">Edit</button>
+                    </div>
+                    <div id="dashboardProcessTable">
+                        <div class="empty-state">
+                            <div class="empty-icon">📭</div>
+                            <h3>No processes added yet</h3>
+                            <p>Add processes or load a sample dataset to begin.</p>
+                            <button class="btn btn-primary" onclick="navigateTo('process-input')">Add Processes</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================
+                 SECTION 2: Process Input
+                 Form to add, edit, delete processes
+                 ======================================================== -->
+            <section class="section" id="section-process-input">
+                <div class="page-header">
+                    <div>
+                        <h1>📝 Process Input</h1>
+                        <p class="page-subtitle">Add, edit, or remove processes for scheduling simulation</p>
+                    </div>
+                    <div class="header-actions">
+                        <div class="dropdown">
+                            <button class="btn btn-secondary" onclick="toggleDropdown('sampleDropdown')">
+                                📂 Load Sample
+                            </button>
+                            <div class="dropdown-menu" id="sampleDropdown">
+                                <button class="dropdown-item" onclick="loadSample('basic')">Basic (4 processes, same arrival)</button>
+                                <button class="dropdown-item" onclick="loadSample('varied')">Varied Arrival Times</button>
+                                <button class="dropdown-item" onclick="loadSample('priority')">Priority Focus</button>
+                                <button class="dropdown-item" onclick="loadSample('heavy')">Heavy Workload (8 processes)</button>
+                                <button class="dropdown-item" onclick="loadSample('gaps')">With CPU Idle Gaps</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="resetAllProcesses()">🗑️ Reset All</button>
+                    </div>
+                </div>
+
+                <!-- Process Input Form -->
+                <div class="card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title" id="processFormTitle">➕ Add New Process</div>
+                            <div class="card-subtitle">Enter the process details below. All fields are required.</div>
+                        </div>
+                    </div>
+
+                    <form id="processForm" onsubmit="return handleProcessSubmit(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="inputPID">Process ID</label>
+                                <input type="text" class="form-control" id="inputPID" placeholder="e.g., P1" required>
+                                <div class="form-error" id="errorPID"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="inputAT">Arrival Time</label>
+                                <input type="number" class="form-control" id="inputAT" placeholder="e.g., 0" min="0" required>
+                                <div class="form-error" id="errorAT"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="inputBT">Burst Time</label>
+                                <input type="number" class="form-control" id="inputBT" placeholder="e.g., 5" min="1" required>
+                                <div class="form-error" id="errorBT"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="inputPriority">Priority</label>
+                                <input type="number" class="form-control" id="inputPriority" placeholder="e.g., 1" min="0" required>
+                                <div class="form-hint">Lower number = Higher priority</div>
+                                <div class="form-error" id="errorPriority"></div>
+                            </div>
+                        </div>
+                        <div class="input-actions">
+                            <button type="submit" class="btn btn-primary" id="btnSubmitProcess">➕ Add Process</button>
+                            <button type="button" class="btn btn-secondary" id="btnCancelEdit" style="display:none;" onclick="cancelEdit()">Cancel Edit</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Process Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📋 Process List</div>
+                        <span style="font-size:0.85rem; color: var(--text-tertiary);" id="processCount">0 processes</span>
+                    </div>
+                    <div id="processTableContainer">
+                        <div class="empty-state" id="emptyProcessState">
+                            <div class="empty-icon">📭</div>
+                            <h3>No processes added</h3>
+                            <p>Use the form above to add processes, or load a sample dataset.</p>
+                        </div>
+                        <div class="table-container" id="processTableWrapper" style="display:none;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Process ID</th>
+                                        <th>Arrival Time</th>
+                                        <th>Burst Time</th>
+                                        <th>Priority</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="processTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================
+                 SECTION 3: Scheduling Algorithms
+                 Select and run algorithms, view step-by-step execution
+                 ======================================================== -->
+            <section class="section" id="section-scheduling">
+                <div class="page-header">
+                    <div>
+                        <h1>🔄 Scheduling Algorithms</h1>
+                        <p class="page-subtitle">Select an algorithm and view the step-by-step execution</p>
+                    </div>
+                </div>
+
+                <!-- Algorithm Selection -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⚡ Select Algorithm</div>
+                    </div>
+                    
+                    <div class="tabs" id="algoTabs">
+                        <button class="tab active" data-algo="fcfs" onclick="selectAlgorithm('fcfs')">FCFS</button>
+                        <button class="tab" data-algo="sjf" onclick="selectAlgorithm('sjf')">SJF</button>
+                        <button class="tab" data-algo="priority-np" onclick="selectAlgorithm('priority-np')">Priority (NP)</button>
+                        <button class="tab" data-algo="priority-p" onclick="selectAlgorithm('priority-p')">Priority (P)</button>
+                        <button class="tab" data-algo="rr" onclick="selectAlgorithm('rr')">Round Robin</button>
+                        <button class="tab" data-algo="srtf" onclick="selectAlgorithm('srtf')">SRTF</button>
+                    </div>
+
+                    <!-- Round Robin Quantum Input (shown only when RR is selected) -->
+                    <div class="quantum-input-group" id="quantumInput" style="display:none;">
+                        <label for="timeQuantum">Time Quantum:</label>
+                        <input type="number" class="form-control" id="timeQuantum" value="2" min="1" max="100" style="width:80px;" onchange="runSelectedAlgorithm()">
+                        <span class="form-hint">Must be ≥ 1</span>
+                    </div>
+
+                    <!-- Run Button -->
+                    <button class="btn btn-primary btn-lg" onclick="runSelectedAlgorithm()" id="btnRunAlgo" style="margin-top:8px;">
+                        ▶️ Run Algorithm
+                    </button>
+                </div>
+
+                <!-- Algorithm Description -->
+                <div class="card" id="algoDescriptionCard">
+                    <div class="card-header">
+                        <div class="card-title" id="algoDescTitle">📖 FCFS — First Come First Serve</div>
+                    </div>
+                    <div id="algoDescription">
+                        <p>The simplest scheduling algorithm. Processes are executed in the order they arrive in the ready queue. It is non-preemptive — once a process starts executing, it runs to completion.</p>
+                    </div>
+                </div>
+
+                <!-- Step by Step Execution -->
+                <div class="card" id="stepByStepCard" style="display:none;">
+                    <div class="card-header">
+                        <div class="card-title">📜 Step-by-Step Execution</div>
+                    </div>
+                    <div class="step-container" id="stepByStepContent">
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================
+                 SECTION 4: Gantt Chart Visualization
+                 ======================================================== -->
+            <section class="section" id="section-gantt">
+                <div class="page-header">
+                    <div>
+                        <h1>📈 Gantt Chart</h1>
+                        <p class="page-subtitle">Visual timeline of process execution</p>
+                    </div>
+                    <div class="header-actions">
+                        <select class="form-control" id="ganttAlgoSelect" style="width:auto;" onchange="updateGanttChart()">
+                            <option value="fcfs">FCFS</option>
+                            <option value="sjf">SJF</option>
+                            <option value="priority-np">Priority (Non-Preemptive)</option>
+                            <option value="priority-p">Priority (Preemptive)</option>
+                            <option value="rr">Round Robin</option>
+                            <option value="srtf">SRTF</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Quantum for Gantt (RR) -->
+                <div class="quantum-input-group" id="ganttQuantumInput" style="display:none;">
+                    <label for="ganttTimeQuantum">Time Quantum:</label>
+                    <input type="number" class="form-control" id="ganttTimeQuantum" value="2" min="1" max="100" style="width:80px;" onchange="updateGanttChart()">
+                </div>
+
+                <!-- Gantt Chart Display -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title" id="ganttTitle">📊 FCFS Gantt Chart</div>
+                    </div>
+                    <div id="ganttChartContainer">
+                        <div class="empty-state" id="emptyGanttState">
+                            <div class="empty-icon">📊</div>
+                            <h3>No chart to display</h3>
+                            <p>Add processes first, then select an algorithm to generate the Gantt chart.</p>
+                        </div>
+                        <div id="ganttChartContent" style="display:none;">
+                            <!-- Interactive Simulation Playback Bar -->
+                            <div class="gantt-playback-bar">
+                                <div class="playback-controls">
+                                    <button class="btn btn-sm btn-primary" id="btnPlayGantt" onclick="toggleGanttPlayback()" title="Play / Pause Simulation">▶️ Play</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="stepGanttPlayback(-1)" title="Step Backward">⏮️ Prev</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="stepGanttPlayback(1)" title="Step Forward">⏭️ Next</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="resetGanttPlayback()" title="Reset Timeline">🔄 Reset</button>
+                                </div>
+                                <div class="playback-status">
+                                    <span>Time:</span>
+                                    <span class="playback-time-badge" id="playbackTimeDisplay">0 / 0</span>
+                                    <span id="playbackProcessDisplay" style="font-weight: 600; color: var(--text-primary);">State: Ready</span>
+                                </div>
+                                <div class="playback-speed">
+                                    <label for="playbackSpeedSelect">Speed:</label>
+                                    <select class="form-control" id="playbackSpeedSelect" style="width:auto; padding:4px 8px; font-size:0.8rem;" onchange="updatePlaybackSpeed()">
+                                        <option value="1500">0.5x (Slow)</option>
+                                        <option value="800" selected>1.0x (Normal)</option>
+                                        <option value="400">2.0x (Fast)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="gantt-container">
+                                <div class="gantt-chart" id="ganttBlocks"></div>
+                                <div class="gantt-timeline" id="ganttTimeline"></div>
+                            </div>
+                            <div class="gantt-legend" id="ganttLegend"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Table for this algorithm -->
+                <div class="card" id="ganttResultsCard" style="display:none;">
+                    <div class="card-header">
+                        <div class="card-title">📋 Scheduling Results</div>
+                    </div>
+                    <div class="table-container" id="ganttResultsTable"></div>
+                </div>
+            </section>
+
+            <!-- ========================================================
+                 SECTION 5: Performance Analysis
+                 Detailed metrics table for selected algorithm
+                 ======================================================== -->
+            <section class="section" id="section-performance">
+                <div class="page-header">
+                    <div>
+                        <h1>📉 Performance Analysis</h1>
+                        <p class="page-subtitle">Detailed scheduling metrics and performance indicators</p>
+                    </div>
+                    <div class="header-actions">
+                        <select class="form-control" id="perfAlgoSelect" style="width:auto;" onchange="updatePerformance()">
+                            <option value="fcfs">FCFS</option>
+                            <option value="sjf">SJF</option>
+                            <option value="priority-np">Priority (Non-Preemptive)</option>
+                            <option value="priority-p">Priority (Preemptive)</option>
+                            <option value="rr">Round Robin</option>
+                            <option value="srtf">SRTF</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Quantum for Performance (RR) -->
+                <div class="quantum-input-group" id="perfQuantumInput" style="display:none;">
+                    <label for="perfTimeQuantum">Time Quantum:</label>
+                    <input type="number" class="form-control" id="perfTimeQuantum" value="2" min="1" max="100" style="width:80px;" onchange="updatePerformance()">
+                </div>
+
+                <!-- Performance Stats -->
+                <div class="stats-grid" id="perfStatsGrid" style="display:none;">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">⏳</div>
+                        <div class="stat-info">
+                            <h4>Avg Waiting Time</h4>
+                            <div class="stat-value" id="perfAvgWT">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon pink">🔄</div>
+                        <div class="stat-info">
+                            <h4>Avg Turnaround Time</h4>
+                            <div class="stat-value" id="perfAvgTAT">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">⚡</div>
+                        <div class="stat-info">
+                            <h4>Avg Response Time</h4>
+                            <div class="stat-value" id="perfAvgRT">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">💻</div>
+                        <div class="stat-info">
+                            <h4>CPU Utilization</h4>
+                            <div class="stat-value" id="perfCPUUtil">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">📊</div>
+                        <div class="stat-info">
+                            <h4>Throughput</h4>
+                            <div class="stat-value" id="perfThroughput">—</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon cyan">🕐</div>
+                        <div class="stat-info">
+                            <h4>Total Time</h4>
+                            <div class="stat-value" id="perfTotalTime">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Results Table -->
+                <div class="card" id="perfResultsCard" style="display:none;">
+                    <div class="card-header">
+                        <div class="card-title">📋 Per-Process Metrics</div>
+                    </div>
+                    <div class="table-container" id="perfResultsTable"></div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="card" id="perfEmptyState">
+                    <div class="empty-state">
+                        <div class="empty-icon">📉</div>
+                        <h3>No data to analyze</h3>
+                        <p>Add processes and run a scheduling algorithm to see performance metrics.</p>
+                        <button class="btn btn-primary" onclick="navigateTo('process-input')">Add Processes</button>
+                    </div>
+                </div>
+
+                <!-- Metrics Explanation -->
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-header">
+                        <div class="card-title">📖 Understanding Scheduling Metrics</div>
+                    </div>
+                    <div class="step-container">
+                        <div class="step">
+                            <div class="step-number">CT</div>
+                            <div class="step-text"><strong>Completion Time</strong> — The time at which a process finishes execution.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">TAT</div>
+                            <div class="step-text"><strong>Turnaround Time</strong> — Total time from arrival to completion. <em>TAT = CT − AT</em></div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">WT</div>
+                            <div class="step-text"><strong>Waiting Time</strong> — Time spent waiting in the ready queue. <em>WT = TAT − BT</em></div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">RT</div>
+                            <div class="step-text"><strong>Response Time</strong> — Time from arrival until the process first gets CPU. <em>RT = First CPU Time − AT</em></div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">%</div>
+                            <div class="step-text"><strong>CPU Utilization</strong> — Percentage of time the CPU is busy. <em>= (Total Time − Idle Time) / Total Time × 100</em></div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">λ</div>
+                            <div class="step-text"><strong>Throughput</strong> — Number of processes completed per unit time. <em>= Number of Processes / Total Time</em></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================
+                 SECTION 6: Algorithm Comparison
+                 Side-by-side comparison of all algorithms
+                 ======================================================== -->
+            <section class="section" id="section-comparison">
+                <div class="page-header">
+                    <div>
+                        <h1>⚖️ Algorithm Comparison</h1>
+                        <p class="page-subtitle">Compare performance across all scheduling algorithms</p>
+                    </div>
+                    <div class="header-actions">
+                        <div class="quantum-input-group" style="margin:0;">
+                            <label for="compQuantum">RR Quantum:</label>
+                            <input type="number" class="form-control" id="compQuantum" value="2" min="1" max="100" style="width:80px;" onchange="updateComparison()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison Empty State -->
+                <div class="card" id="compEmptyState">
+                    <div class="empty-state">
+                        <div class="empty-icon">⚖️</div>
+                        <h3>No data to compare</h3>
+                        <p>Add processes first to compare algorithm performance.</p>
+                        <button class="btn btn-primary" onclick="navigateTo('process-input')">Add Processes</button>
+                    </div>
+                </div>
+
+                <!-- Comparison Content (hidden until processes are added) -->
+                <div id="compContent" style="display:none;">
+                    <!-- Summary Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">📊 Summary Comparison Table</div>
+                        </div>
+                        <div class="table-container" id="compSummaryTable"></div>
+                    </div>
+
+                    <!-- Bar Charts -->
+                    <div class="comparison-grid">
+                        <div class="chart-card">
+                            <div class="chart-title">⏳ Average Waiting Time</div>
+                            <div class="bar-chart" id="compChartWT"></div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">🔄 Average Turnaround Time</div>
+                            <div class="bar-chart" id="compChartTAT"></div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">⚡ Average Response Time</div>
+                            <div class="bar-chart" id="compChartRT"></div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">💻 CPU Utilization (%)</div>
+                            <div class="bar-chart" id="compChartCPU"></div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-title">📊 Throughput (proc/unit)</div>
+                            <div class="bar-chart" id="compChartTP"></div>
+                        </div>
+                    </div>
+
+                    <!-- Best Algorithm Summary -->
+                    <div class="card" style="margin-top:20px;">
+                        <div class="card-header">
+                            <div class="card-title">🏆 Best Algorithm per Metric</div>
+                        </div>
+                        <div id="bestAlgoSummary"></div>
+                        <div class="alert alert-info" style="margin-top:16px;">
+                            <span>ℹ️</span>
+                            <span>No single algorithm is universally best. The optimal choice depends on the workload characteristics and the metric you want to optimize (e.g., minimize waiting time vs. maximize throughput).</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================
+                 SECTION 7: Learn Algorithms (Educational Content)
+                 ======================================================== -->
+            <section class="section" id="section-learn">
+                <div class="page-header">
+                    <div>
+                        <h1>📚 Learn CPU Scheduling</h1>
+                        <p class="page-subtitle">Understanding how each scheduling algorithm works</p>
+                    </div>
+                </div>
+
+                <!-- Introduction -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🎓 What is CPU Scheduling?</div>
+                    </div>
+                    <p>CPU Scheduling is the process by which the Operating System decides which process in the ready queue gets to use the CPU at any given time. It is a fundamental concept in Operating Systems that directly affects system performance and responsiveness.</p>
+                    <br>
+                    <p>The <strong>scheduler</strong> selects processes from the ready queue and allocates the CPU to them. The goal is to maximize CPU utilization, throughput, and fairness while minimizing waiting time, turnaround time, and response time.</p>
+                    <br>
+                    <div class="algo-props">
+                        <div class="algo-prop"><span class="prop-icon">🔹</span> <strong>Preemptive:</strong> CPU can be taken away from a running process</div>
+                        <div class="algo-prop"><span class="prop-icon">🔹</span> <strong>Non-Preemptive:</strong> Once started, a process runs to completion</div>
+                        <div class="algo-prop"><span class="prop-icon">🔹</span> <strong>Starvation:</strong> A process waits indefinitely for CPU</div>
+                        <div class="algo-prop"><span class="prop-icon">🔹</span> <strong>Convoy Effect:</strong> Short processes wait behind long ones</div>
+                    </div>
+                </div>
+
+                <!-- FCFS -->
+                <div class="algo-card">
+                    <div class="algo-card-header">
+                        <div class="algo-badge process-color-0">FCFS</div>
+                        <div>
+                            <h3>First Come First Serve</h3>
+                            <span style="font-size:0.82rem; color: var(--text-tertiary);">Non-Preemptive</span>
+                        </div>
+                    </div>
+                    <div class="algo-card-body">
+                        <p><strong>How it works:</strong> Processes are executed in the order they arrive in the ready queue, similar to a queue at a ticket counter. The first process to arrive is the first to get the CPU.</p>
+                        <p><strong>Real-world analogy:</strong> Like waiting in a line at a bank — first person in line gets served first, regardless of how long their transaction takes.</p>
+                        <div class="pros-cons">
+                            <div class="pros">
+                                <h5>✅ Advantages</h5>
+                                <ul>
+                                    <li>Simplest to implement and understand</li>
+                                    <li>Fair — no starvation possible</li>
+                                    <li>No overhead of context switching decisions</li>
+                                    <li>Predictable execution order</li>
+                                </ul>
+                            </div>
+                            <div class="cons">
+                                <h5>❌ Disadvantages</h5>
+                                <ul>
+                                    <li>Convoy effect: short processes wait behind long ones</li>
+                                    <li>High average waiting time</li>
+                                    <li>Not suitable for time-sharing systems</li>
+                                    <li>Non-preemptive — no priority handling</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="algo-props" style="margin-top:12px;">
+                            <div class="algo-prop"><span class="prop-icon">📌</span> Used in: Batch processing systems, print queues</div>
+                            <div class="algo-prop"><span class="prop-icon">⏱️</span> Time Complexity: O(n log n) for sorting</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SJF -->
+                <div class="algo-card">
+                    <div class="algo-card-header">
+                        <div class="algo-badge process-color-1">SJF</div>
+                        <div>
+                            <h3>Shortest Job First</h3>
+                            <span style="font-size:0.82rem; color: var(--text-tertiary);">Non-Preemptive</span>
+                        </div>
+                    </div>
+                    <div class="algo-card-body">
+                        <p><strong>How it works:</strong> When the CPU is free, the process with the shortest burst time among all arrived processes is selected. Ties are broken by arrival time.</p>
+                        <p><strong>Real-world analogy:</strong> Like an express checkout lane — customers with fewer items (shorter jobs) go first.</p>
+                        <div class="pros-cons">
+                            <div class="pros">
+                                <h5>✅ Advantages</h5>
+                                <ul>
+                                    <li>Optimal average waiting time (for non-preemptive)</li>
+                                    <li>Good for batch systems where burst times are known</li>
+                                    <li>Minimizes average turnaround time</li>
+                                </ul>
+                            </div>
+                            <div class="cons">
+                                <h5>❌ Disadvantages</h5>
+                                <ul>
+                                    <li>Starvation: long processes may wait indefinitely</li>
+                                    <li>Burst time must be known in advance</li>
+                                    <li>Not practical for interactive systems</li>
+                                    <li>Difficult to predict CPU burst length</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="algo-props" style="margin-top:12px;">
+                            <div class="algo-prop"><span class="prop-icon">📌</span> Used in: Batch operating systems, process scheduling</div>
+                            <div class="algo-prop"><span class="prop-icon">⏱️</span> Produces minimum average WT for a given set of processes</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Priority -->
+                <div class="algo-card">
+                    <div class="algo-card-header">
+                        <div class="algo-badge process-color-3">PRI</div>
+                        <div>
+                            <h3>Priority Scheduling</h3>
+                            <span style="font-size:0.82rem; color: var(--text-tertiary);">Non-Preemptive & Preemptive</span>
+                        </div>
+                    </div>
+                    <div class="algo-card-body">
+                        <p><strong>How it works:</strong> Each process is assigned a priority. The CPU is allocated to the process with the highest priority (lowest priority number in this implementation). In preemptive mode, a running process is interrupted if a higher-priority process arrives.</p>
+                        <p><strong>Priority convention:</strong> In this application, a <strong>lower priority number means higher priority</strong> (e.g., Priority 1 is more important than Priority 3).</p>
+                        <p><strong>Real-world analogy:</strong> Like an emergency room — patients are treated based on severity (priority), not arrival order.</p>
+                        <div class="pros-cons">
+                            <div class="pros">
+                                <h5>✅ Advantages</h5>
+                                <ul>
+                                    <li>Important processes get CPU first</li>
+                                    <li>Flexible — priorities can reflect urgency</li>
+                                    <li>Suitable for real-time systems</li>
+                                    <li>Can be combined with other algorithms</li>
+                                </ul>
+                            </div>
+                            <div class="cons">
+                                <h5>❌ Disadvantages</h5>
+                                <ul>
+                                    <li>Starvation: low-priority processes may never execute</li>
+                                    <li>Priority inversion problem</li>
+                                    <li>Determining priorities can be complex</li>
+                                    <li>Solution: Aging (increasing priority over time)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="algo-props" style="margin-top:12px;">
+                            <div class="algo-prop"><span class="prop-icon">📌</span> Used in: Windows, Linux, RTOS</div>
+                            <div class="algo-prop"><span class="prop-icon">⏱️</span> Preemptive version used in most modern OS</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Round Robin -->
+                <div class="algo-card">
+                    <div class="algo-card-header">
+                        <div class="algo-badge process-color-4">RR</div>
+                        <div>
+                            <h3>Round Robin</h3>
+                            <span style="font-size:0.82rem; color: var(--text-tertiary);">Preemptive (Time-Sliced)</span>
+                        </div>
+                    </div>
+                    <div class="algo-card-body">
+                        <p><strong>How it works:</strong> Each process gets a fixed time slice (quantum). If the process doesn't finish within its quantum, it is preempted and placed at the back of the ready queue. The next process in the queue then gets the CPU.</p>
+                        <p><strong>Time Quantum:</strong> The performance of Round Robin depends heavily on the quantum size. A very small quantum causes too many context switches; a very large quantum degrades to FCFS.</p>
+                        <p><strong>Real-world analogy:</strong> Like a group presentation where each person gets exactly 2 minutes to speak, then the next person goes.</p>
+                        <div class="pros-cons">
+                            <div class="pros">
+                                <h5>✅ Advantages</h5>
+                                <ul>
+                                    <li>Fair — every process gets equal CPU time</li>
+                                    <li>No starvation</li>
+                                    <li>Good for time-sharing systems</li>
+                                    <li>Low response time for short processes</li>
+                                </ul>
+                            </div>
+                            <div class="cons">
+                                <h5>❌ Disadvantages</h5>
+                                <ul>
+                                    <li>Performance depends on quantum size</li>
+                                    <li>Context switching overhead</li>
+                                    <li>Higher average WT than SJF</li>
+                                    <li>No priority consideration</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="algo-props" style="margin-top:12px;">
+                            <div class="algo-prop"><span class="prop-icon">📌</span> Used in: Unix, Linux, Windows time-sharing</div>
+                            <div class="algo-prop"><span class="prop-icon">⏱️</span> Typical quantum: 10-100 milliseconds</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SRTF -->
+                <div class="algo-card">
+                    <div class="algo-card-header">
+                        <div class="algo-badge process-color-5">SRTF</div>
+                        <div>
+                            <h3>Shortest Remaining Time First</h3>
+                            <span style="font-size:0.82rem; color: var(--text-tertiary);">Preemptive (SJF Variant)</span>
+                        </div>
+                    </div>
+                    <div class="algo-card-body">
+                        <p><strong>How it works:</strong> The preemptive version of SJF. At each time unit, the process with the shortest remaining burst time is selected. If a new process arrives with a shorter remaining time than the currently running process, the current process is preempted.</p>
+                        <p><strong>Real-world analogy:</strong> Like a hospital where a patient with a quick procedure can bump someone who still needs a long treatment.</p>
+                        <div class="pros-cons">
+                            <div class="pros">
+                                <h5>✅ Advantages</h5>
+                                <ul>
+                                    <li>Optimal average waiting time among all algorithms</li>
+                                    <li>Better response time for short processes</li>
+                                    <li>More efficient than non-preemptive SJF</li>
+                                </ul>
+                            </div>
+                            <div class="cons">
+                                <h5>❌ Disadvantages</h5>
+                                <ul>
+                                    <li>Starvation of longer processes</li>
+                                    <li>High overhead of frequent preemptions</li>
+                                    <li>Requires knowing remaining burst time</li>
+                                    <li>Complex to implement</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="algo-props" style="margin-top:12px;">
+                            <div class="algo-prop"><span class="prop-icon">📌</span> Used in: Advanced scheduling in RTOS</div>
+                            <div class="algo-prop"><span class="prop-icon">⏱️</span> Also known as: Preemptive SJF or SRTF</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================
+                 SECTION 8: About the Project
+                 ======================================================== -->
+            <section class="section" id="section-about">
+                <div class="page-header">
+                    <div>
+                        <h1>ℹ️ About This Project</h1>
+                        <p class="page-subtitle">CPU Scheduling Visualizer & Performance Analyzer</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📄 Project Abstract</div>
+                    </div>
+                    <p>This project is an interactive web-based application that demonstrates and compares various CPU scheduling algorithms used in Operating Systems. It allows users to input process data, visualize execution through Gantt charts, analyze performance metrics, and compare algorithms side by side. The tool serves as an educational aid for understanding how an operating system's CPU scheduler works and how different algorithms impact system performance.</p>
+                </div>
+
+                <div class="about-grid">
+                    <div class="about-card">
+                        <div class="about-icon">🎯</div>
+                        <h3>Objectives</h3>
+                        <p>Implement, visualize, and compare CPU scheduling algorithms. Provide an interactive learning tool for OS concepts with accurate calculations and clear visualizations.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-icon">🛠️</div>
+                        <h3>Technology Stack</h3>
+                        <div class="tech-stack">
+                            <span class="tech-tag">HTML5</span>
+                            <span class="tech-tag">CSS3</span>
+                            <span class="tech-tag">JavaScript ES6</span>
+                            <span class="tech-tag">No Frameworks</span>
+                        </div>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-icon">📊</div>
+                        <h3>Algorithms</h3>
+                        <p>FCFS, SJF (Non-Preemptive), Priority (Non-Preemptive & Preemptive), Round Robin, and SRTF (Preemptive SJF).</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-icon">✅</div>
+                        <h3>Features</h3>
+                        <p>Interactive process input, dynamic Gantt charts, detailed metrics, algorithm comparison with bar charts, dark/light mode, and educational content.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-icon">💻</div>
+                        <h3>System Requirements</h3>
+                        <p>Any modern web browser (Chrome, Firefox, Edge, Safari). No server or installation required — runs entirely in the browser.</p>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-icon">📘</div>
+                        <h3>Course</h3>
+                        <p>Operating Systems — College Level Capstone Project. Covers process scheduling, CPU management, and performance analysis.</p>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">👥 Project Team &amp; Designated Responsibilities</div>
+                            <div class="card-subtitle">Operating Systems Capstone Project — 3-Member Structured Division</div>
+                        </div>
+                    </div>
+                    
+                    <div class="team-grid">
+                        <!-- Student 1 -->
+                        <div class="team-card">
+                            <div class="team-card-header">
+                                <div class="team-avatar">MY</div>
+                                <div class="team-info">
+                                    <h3>Mohit Yadav</h3>
+                                    <span class="team-roll">Roll No: 2401730063</span>
+                                    <span class="team-role-badge">Student 1: OS / Core Implementation</span>
+                                </div>
+                            </div>
+                            <ul class="team-responsibilities">
+                                <li>Designed and implemented core scheduling algorithms (FCFS, SJF, Priority NP/P, Round Robin, SRTF).</li>
+                                <li>Formulated discrete-event simulation engine with process state tracking.</li>
+                                <li>Implemented deterministic tie-breaking logic (Priority → Arrival Time → PID).</li>
+                                <li>Engineered Round Robin queue management and time-quantum arrival synchronization.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Student 2 -->
+                        <div class="team-card">
+                            <div class="team-card-header">
+                                <div class="team-avatar">DS</div>
+                                <div class="team-info">
+                                    <h3>Devansh Saini</h3>
+                                    <span class="team-roll">Roll No: 2401730102</span>
+                                    <span class="team-role-badge">Student 2: Interface &amp; Visualization</span>
+                                </div>
+                            </div>
+                            <ul class="team-responsibilities">
+                                <li>Designed modern, responsive dashboard UI with Dark / Light theming.</li>
+                                <li>Engineered dynamic Gantt chart visualization with proportional scaling and idle gap indicators.</li>
+                                <li>Developed multi-algorithm comparison module with interactive animated bar charts.</li>
+                                <li>Built interactive simulation playback controller and step-by-step trace narrative.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Student 3 -->
+                        <div class="team-card">
+                            <div class="team-card-header">
+                                <div class="team-avatar">D</div>
+                                <div class="team-info">
+                                    <h3>Deepak</h3>
+                                    <span class="team-roll">Roll No: 2401730152</span>
+                                    <span class="team-role-badge">Student 3: Testing &amp; Performance</span>
+                                </div>
+                            </div>
+                            <ul class="team-responsibilities">
+                                <li>Authored automated test suite with 178 unit and boundary test cases (100% pass rate).</li>
+                                <li>Verified mathematical invariants ($RT \le WT$, $WT = TAT - BT$, $\sum BT + \text{Idle} = \text{Total}$).</li>
+                                <li>Conducted comparative performance benchmarks across multiple process workloads.</li>
+                                <li>Prepared comprehensive project report, viva guide, and interactive presentation slide deck.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-header">
+                        <div class="card-title">🔮 Future Scope</div>
+                    </div>
+                    <div class="step-container">
+                        <div class="step">
+                            <div class="step-number">1</div>
+                            <div class="step-text"><strong>Multi-Level Queue Scheduling</strong> — Implement multiple queues with different scheduling algorithms.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">2</div>
+                            <div class="step-text"><strong>Multi-Level Feedback Queue</strong> — Dynamic queue movement based on process behavior.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">3</div>
+                            <div class="step-text"><strong>Animation Mode</strong> — Animated step-by-step execution showing processes moving through queues.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">4</div>
+                            <div class="step-text"><strong>Real-time Process Monitoring</strong> — Integration with actual OS process data for live demonstrations.</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-number">5</div>
+                            <div class="step-text"><strong>Export & Reporting</strong> — Export results as PDF/CSV for academic submissions.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ================================================================
+         JavaScript Files
+         Loaded in order: algorithms (core) → app (UI logic)
+         ================================================================ -->
+    <script src="js/scheduling-algorithms.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

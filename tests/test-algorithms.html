@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Scheduling Algorithms — Test Suite</title>
+    <style>
+        /* ===== Reset & Base ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        /* ===== Header ===== */
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        header h1 {
+            font-size: 1.8rem;
+            color: #16213e;
+            margin-bottom: .25rem;
+        }
+        header p {
+            font-size: .95rem;
+            color: #555;
+        }
+
+        /* ===== Summary Bar ===== */
+        #summary {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+        .summary-card {
+            background: #fff;
+            border-radius: 10px;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+            text-align: center;
+            min-width: 140px;
+        }
+        .summary-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .summary-card .label {
+            font-size: .85rem;
+            color: #777;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .summary-card.total .number  { color: #16213e; }
+        .summary-card.passed .number { color: #27ae60; }
+        .summary-card.failed .number { color: #e74c3c; }
+        .summary-card.time .number   { color: #2980b9; }
+
+        /* ===== Progress Bar ===== */
+        #progress-bar-container {
+            background: #ddd;
+            border-radius: 8px;
+            height: 10px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 8px;
+            transition: width .3s, background .3s;
+        }
+
+        /* ===== Test Groups ===== */
+        .test-group {
+            background: #fff;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+            overflow: hidden;
+        }
+        .test-group-header {
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: background .2s;
+        }
+        .test-group-header:hover { background: #f8f9fa; }
+        .test-group-header .badge {
+            font-size: .8rem;
+            padding: .25rem .75rem;
+            border-radius: 20px;
+            color: #fff;
+            font-weight: 500;
+        }
+        .badge.all-pass { background: #27ae60; }
+        .badge.has-fail { background: #e74c3c; }
+
+        .test-group-body {
+            border-top: 1px solid #eee;
+            padding: 0;
+            display: none;           /* collapsed by default */
+        }
+        .test-group.open .test-group-body { display: block; }
+
+        /* ===== Individual Test Results ===== */
+        .test-result {
+            padding: .6rem 1.5rem;
+            border-bottom: 1px solid #f2f2f2;
+            display: flex;
+            align-items: flex-start;
+            gap: .75rem;
+            font-size: .9rem;
+        }
+        .test-result:last-child { border-bottom: none; }
+        .test-result .icon { font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
+        .test-result.pass .icon { color: #27ae60; }
+        .test-result.fail .icon { color: #e74c3c; }
+        .test-result .details { flex: 1; }
+        .test-result .test-name { font-weight: 500; }
+        .test-result.fail .error-msg {
+            display: block;
+            margin-top: .25rem;
+            padding: .4rem .75rem;
+            background: #fdf0f0;
+            border-left: 3px solid #e74c3c;
+            border-radius: 4px;
+            font-size: .82rem;
+            color: #c0392b;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* ===== Footer ===== */
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: .82rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🧪 CPU Scheduling Algorithms — Test Suite</h1>
+    <p>Comprehensive tests for FCFS, SJF, SRTF, Priority (NP &amp; P), and Round Robin</p>
+</header>
+
+<!-- Summary cards (filled by JS) -->
+<div id="summary">
+    <div class="summary-card total">
+        <div class="number" id="total-count">0</div>
+        <div class="label">Total</div>
+    </div>
+    <div class="summary-card passed">
+        <div class="number" id="pass-count">0</div>
+        <div class="label">Passed</div>
+    </div>
+    <div class="summary-card failed">
+        <div class="number" id="fail-count">0</div>
+        <div class="label">Failed</div>
+    </div>
+    <div class="summary-card time">
+        <div class="number" id="run-time">—</div>
+        <div class="label">ms</div>
+    </div>
+</div>
+
+<!-- Progress bar -->
+<div id="progress-bar-container">
+    <div id="progress-bar"></div>
+</div>
+
+<!-- Test results container (populated by JS) -->
+<div id="results"></div>
+
+<footer>
+    CPU Scheduling Visualizer &mdash; Test Suite &copy; 2025
+</footer>
+
+<!-- Load the scheduling algorithms first, then the test script -->
+<script src="../js/scheduling-algorithms.js"></script>
+<script src="test-algorithms.js"></script>
+
+</body>
+</html>
